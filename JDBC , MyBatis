@@ -1,0 +1,126 @@
+• JDBC(Java Database Connectivity)는 자바에서 데이터베이스에 접속할 수 있도록 하는, 
+즉 자바에서 DB에 연결하기 위해 제공되는 API로서 SQL(Structured Query Language)에 접근한다.
+조회/삽입/수정/삭제를 가능하게 해준다.
+JDBC 한 파일에서는 SQL 및 DB연결, Java언어가 모두 존재하기때문에 재사용성이 좋지 않다.
+
+
+
+JDBC 예시)---------------------------------------------------------------------------------------------------------------------------
+
+package com.address.web.dao.jdbc;
+ 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+ 
+import com.address.web.dao.NoticeDao;
+import com.address.web.entity.Notice;
+import com.address.web.entity.NoticeView;
+ 
+//@Repository
+public class JdbcNoticeDao implements NoticeDao {
+ 
+   @Override
+   public List<NoticeView> getList() throws ClassNotFoundException, SQLException {
+      int page = 1;
+      List<NoticeView> list = new ArrayList<>();
+      int index = 0;
+      
+      String sql = "SELECT * FROM Notice ORDER BY regdate DESC LIMIT 10 OFFSET ?";    
+      String url = "jdbc:mysql://dev.notead.com:0000/address?useSSL=false&useUnicode=true&characterEncoding=utf8&serverTimezone=UTC";
+ 
+      Class.forName("com.mysql.cj.jdbc.Driver");
+      Connection con = DriverManager.getConnection(url, "address", "123");         
+      PreparedStatement st = con.prepareStatement(sql);
+      st.setInt(1, (page-1)*10); 
+      
+      ResultSet rs = st.executeQuery();
+            
+      while (rs.next()) {
+         NoticeView noticeView = new NoticeView();
+         noticeView.setId(rs.getInt("ID"));
+         noticeView.setTitle(rs.getString("TITLE"));
+         noticeView.setWriterId(rs.getString("writerId"));
+         noticeView.setRegdate(rs.getDate("REGDATE"));
+         noticeView.setHit(rs.getInt("HIT"));
+         noticeView.setFiles(rs.getString("FILES"));
+         noticeView.setPub(rs.getBoolean("PUB"));
+         
+         list.add(noticeView);      
+      }
+ 
+      rs.close();
+      st.close();
+      con.close();
+      
+      return list;
+   }
+ 
+   @Override
+   public Notice get(int id) {
+      // TODO Auto-generated method stub
+      return null;
+   }
+ 
+   @Override
+   public int insert(Notice notice) {
+      // TODO Auto-generated method stub
+      return 0;
+   }
+ 
+   @Override
+   public int update(Notice notice) {
+      // TODO Auto-generated method stub
+      return 0;
+   }
+ 
+   @Override
+   public int delete(int id) {
+      // TODO Auto-generated method stub
+      return 0;
+   }
+ 
+}
+---------------------------------------------------------------------------------------------------------------------------------
+
+• MyBatis는 SQL문이 어플리케이션 소스 코드로부터 분리된다. 
+또한 JDBC를 통해 수동으로 세팅한 파라미터와 결과 매핑을 대신해주어 JDBC로 처리하는 작업 보다 더 간편하게 작업할 수 있으며, 
+코드량이 줄어 생산성을 높여준다. 
+
+MyBatis는 개발자가 지정한 SQL, 
+저장프로시저 그리고 몇가지 고급 매핑을 지원하는 퍼시스턴스 프레임워크(Persistence Framework) 중 하나이다. 
+마이바티스는 JDBC로 처리하는 상당부분의 코드와 파라미터 설정및 결과 매핑을 대신해준다. 
+마이바티스는 데이터베이스 레코드에 원시타입(primitive type)과 Map 인터페이스
+그리고 자바 POJO(Plain Old Java Objects)를 설정해서 매핑하기 위해 XML이나 Annotation을 사용할 수 있다.
+
+
+MyBatis 예시)--------------------------------------------------------------------------------------------------------------------
+
+package com.address.web.dao;
+ 
+import java.sql.SQLException;
+import java.util.List;
+ 
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+ 
+import com.address.web.entity.Notice;
+import com.address.web.entity.NoticeView;
+ 
+@Mapper     
+public interface NoticeDao {
+    
+    @Select("SELECT * FROM Notice WHERE ${field} LIKE '%${query}%' ORDER BY regdate DESC LIMIT 10")
+    List<NoticeView> getList(int page, String query, String field) throws ClassNotFoundException, SQLException;
+    
+    @Select("SELECT * FROM Notice WHERE id= #{id}")
+    Notice get(int id);
+    int insert(Notice notice);
+    int update(Notice notice);
+    int delete(int id);
+}
+----------------------------------------------------------------------------------------------------------------------------------
